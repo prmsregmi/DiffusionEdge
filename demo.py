@@ -25,15 +25,41 @@ def load_conf(config_file, conf={}):
         for k, v in exp_conf.items():
             conf[k] = v
     return conf
+
+# Model configurations
+MODEL_CONFIGS = {
+    'bsds': {
+        'config': './configs/BSDS_sample.yaml',
+        'weight': 'checkpoints/bsds.pt',
+    },
+    'nyud': {
+        'config': './configs/NYUD_sample.yaml',
+        'weight': 'checkpoints/nyud.pt',
+    },
+    'biped': {
+        'config': './configs/BIPED_sample.yaml',
+        'weight': 'checkpoints/biped.pt',
+    },
+}
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="demo configure")
-    parser.add_argument("--cfg", help="experiment configure file name", type=str, default="./configs/default.yaml")
+    parser = argparse.ArgumentParser(description="DiffusionEdge Demo")
+    parser.add_argument("--model", help='model to use: bsds, nyud, or biped', type=str, default='bsds', choices=['bsds', 'nyud', 'biped'])
+    parser.add_argument("--cfg", help="experiment configure file name (overrides --model)", type=str, default=None)
     parser.add_argument("--input_dir", help='input directory', type=str, required=True)
-    parser.add_argument("--pre_weight", help='path of pretrained weight', type=str, required=True)
+    parser.add_argument("--pre_weight", help='path of pretrained weight (overrides --model)', type=str, default=None)
     parser.add_argument("--sampling_timesteps", help='sampling timesteps', type=int, default=1)
     parser.add_argument("--out_dir", help='output directory', type=str, required=True)
     parser.add_argument("--bs", help='batch_size for inference', type=int, default=8)
     args = parser.parse_args()
+    
+    # Resolve config and weight from model selection if not explicitly provided
+    model_config = MODEL_CONFIGS[args.model]
+    if args.cfg is None:
+        args.cfg = model_config['config']
+    if args.pre_weight is None:
+        args.pre_weight = model_config['weight']
+    
     args.cfg = load_conf(args.cfg)
     return args
 
@@ -141,6 +167,7 @@ class Sampler(object):
             split_batches=True,
             mixed_precision='no',
             kwargs_handlers=[ddp_handler],
+            cpu=True
         )
         self.model = model
         self.sample_num = sample_num
@@ -177,7 +204,7 @@ class Sampler(object):
             sd = new_sd
             model.load_state_dict(sd)
         else:
-            model.load_state_dict(data['model'])
+            model.load_state_dict(data['model'], strict=False)
         if 'scale_factor' in data['model']:
             model.scale_factor = data['model']['scale_factor']
 
