@@ -51,6 +51,7 @@ def parse_args():
     parser.add_argument("--sampling_timesteps", help='sampling timesteps', type=int, default=1)
     parser.add_argument("--out_dir", help='output directory', type=str, required=True)
     parser.add_argument("--bs", help='batch_size for inference', type=int, default=8)
+    parser.add_argument("--skip_small", help='skip images smaller than crop size (320x320) instead of failing', action='store_true')
     args = parser.parse_args()
     
     # Resolve config and weight from model selection if not explicitly provided
@@ -146,6 +147,7 @@ def main(args):
         ldm, dl, batch_size=sampler_cfg.batch_size,
         sample_num=sampler_cfg.sample_num,
         results_folder=sampler_cfg.save_folder, cfg=cfg,
+        skip_small=args.skip_small,
     )
     sampler.sample()
 
@@ -160,6 +162,7 @@ class Sampler(object):
             results_folder='./results',
             rk45=False,
             cfg={},
+            skip_small=False,
     ):
         super().__init__()
         ddp_handler = DistributedDataParallelKwargs(find_unused_parameters=True)
@@ -178,6 +181,8 @@ class Sampler(object):
 
         self.image_size = model.image_size
         self.cfg = cfg
+        self.skip_small = skip_small
+        self.min_size = cfg.sampler.get('crop_size', [320, 320]) if hasattr(cfg, 'sampler') else [320, 320]
 
         # dataset and dataloader
 
@@ -212,6 +217,7 @@ class Sampler(object):
         accelerator = self.accelerator
         device = accelerator.device
         batch_num = self.batch_num
+        skipped = []
         with torch.no_grad():
             self.model.eval()
             psnr = 0.
@@ -226,6 +232,13 @@ class Sampler(object):
                 raw_h = batch["raw_size"][1].item()
                 img_name = batch["img_name"][0]
 
+                # Check if image is too small for slide sampling
+                if self.skip_small and self.cfg.sampler.sample_type == 'slide':
+                    min_h, min_w = self.min_size
+                    if raw_w < min_w or raw_h < min_h:
+                        skipped.append(f"{img_name} ({raw_w}x{raw_h})")
+                        continue
+
                 mask = batch['ori_mask'] if 'ori_mask' in batch else None
                 bs = cond.shape[0]
                 if self.cfg.sampler.sample_type == 'whole':
@@ -238,6 +251,8 @@ class Sampler(object):
                 for j, (img, c) in enumerate(zip(batch_pred, cond)):
                     file_name = self.results_folder / img_name
                     tv.utils.save_image(img, str(file_name)[:-4] + ".png")
+        if skipped:
+            accelerator.print(f'Skipped {len(skipped)} small images: {skipped}')
         accelerator.print('sampling complete')
 
     # ----------------------------------waiting revision------------------------------------
