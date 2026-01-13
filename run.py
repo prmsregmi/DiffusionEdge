@@ -51,21 +51,27 @@ def parse_eval_output(output):
         
     return ods_f, ois_f
 
-def run_command(cmd, dry_run=False):
+def run_command(cmd, dry_run=False, capture_output=True):
     print(f"Running: {' '.join(cmd)}")
     if dry_run:
         return "ODS: F=0.0 (P=0.0, R=0.0)\nOIS: F=0.0 (P=0.0, R=0.0)"
     
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(result.stdout)
-        if result.stderr:
-            print(result.stderr, file=sys.stderr)
-        return result.stdout
+        if capture_output:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(result.stdout)
+            if result.stderr:
+                print(result.stderr, file=sys.stderr)
+            return result.stdout
+        else:
+            # Stream directly to console
+            subprocess.run(cmd, check=True)
+            return "SUCCESS"
     except subprocess.CalledProcessError as e:
         print(f"Error running command: {e}")
-        print(e.stdout)
-        print(e.stderr, file=sys.stderr)
+        if capture_output:
+            print(e.stdout)
+            print(e.stderr, file=sys.stderr)
         return None
 
 def main():
@@ -100,7 +106,8 @@ def main():
                 "--sampling_timesteps", "5"
             ]
             
-            demo_output = run_command(demo_cmd, args.dry_run)
+            # Don't capture output for demo, so user sees progress
+            demo_output = run_command(demo_cmd, args.dry_run, capture_output=False)
             if demo_output is None and not args.dry_run:
                 print("Inference failed, skipping evaluation.")
                 continue
@@ -113,7 +120,8 @@ def main():
                 "--model", train_model
             ]
             
-            eval_output = run_command(eval_cmd, args.dry_run)
+            # Capture output for eval to parse scores
+            eval_output = run_command(eval_cmd, args.dry_run, capture_output=True)
             if eval_output:
                 ods, ois = parse_eval_output(eval_output)
                 
