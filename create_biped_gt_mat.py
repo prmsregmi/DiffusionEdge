@@ -55,20 +55,16 @@ def convert_biped_gt_to_mat(gt_dir, output_dir):
 
 
 if __name__ == "__main__":
-    gt_dir = "data/BIPED/gt"
-    output_dir = "data/BIPED/gt_mat"
-    convert_biped_gt_to_mat(gt_dir, output_dir)
+    import argparse
+    parser = argparse.ArgumentParser(description="Convert GT edge PNGs to MAT format")
+    parser.add_argument("--gt_dir", required=True, help="Directory with GT edge PNG images")
+    parser.add_argument("--output_dir", required=True, help="Output directory for MAT files")
+    args = parser.parse_args()
+    convert_biped_gt_to_mat(args.gt_dir, args.output_dir)
     
-    # Verify by comparing with UDED format
-    print("\n--- Verification ---")
-    
-    uded = loadmat('data/UDED/gt_mat/12-cameraman.mat')
-    print(f"UDED groundTruth shape: {uded['groundTruth'].shape}")
-    uded_boundaries = uded['groundTruth'][0][0]['Boundaries'][0, 0]
-    print(f"UDED Boundaries shape: {uded_boundaries.shape}, dtype: {uded_boundaries.dtype}")
-    
-    biped = loadmat(os.path.join(output_dir, 'RGB_008.mat'))
-    print(f"BIPED groundTruth shape: {biped['groundTruth'].shape}")
-    biped_boundaries = biped['groundTruth'][0][0]['Boundaries'][0, 0]
-    print(f"BIPED Boundaries shape: {biped_boundaries.shape}, dtype: {biped_boundaries.dtype}")
-    print(f"BIPED Boundaries unique values: {np.unique(biped_boundaries)}")
+    # Verify first output file
+    mat_files = [f for f in os.listdir(args.output_dir) if f.endswith('.mat')]
+    if mat_files:
+        sample = loadmat(os.path.join(args.output_dir, mat_files[0]))
+        boundaries = sample['groundTruth'][0][0]['Boundaries'][0, 0]
+        print(f"\nVerified {mat_files[0]}: shape {boundaries.shape}, unique {np.unique(boundaries)}")

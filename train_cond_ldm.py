@@ -20,6 +20,7 @@ from fvcore.common.config import CfgNode
 def parse_args():
     parser = argparse.ArgumentParser(description="training vae configure")
     parser.add_argument("--cfg", help="experiment configure file name", type=str, required=True)
+    parser.add_argument("--data_folder", help="override data folder path", type=str, default=None)
     # parser.add_argument("")
     args = parser.parse_args()
     args.cfg = load_conf(args.cfg)
@@ -92,6 +93,8 @@ def main(args):
         cfg=model_cfg,
     )
     data_cfg = cfg.data
+    if args.data_folder:
+        data_cfg.img_folder = args.data_folder
 
     if data_cfg['name'] == 'edge':
         dataset = EdgeDataset(

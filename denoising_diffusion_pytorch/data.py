@@ -195,6 +195,7 @@ class EdgeDataset(data.Dataset):
 
         maybe_convert_fn = partial(convert_image_to_fn, convert_image_to) if exists(convert_image_to) else Identity()
 
+        self.cfg = cfg  # Must be set before build_list() to use custom folder names
         self.data_list = self.build_list()
 
         # self.transform = Compose([
@@ -216,6 +217,18 @@ class EdgeDataset(data.Dataset):
                 ToTensor()
             ])
         print("crop_type:", crop_type)
+        
+        # Pre-load all images into memory if cache_in_memory is enabled
+        self.cache_in_memory = self.cfg.get('cache_in_memory', False) if hasattr(self, 'cfg') else False
+        self.image_cache = {}
+        if self.cache_in_memory:
+            print(f"Caching {len(self.data_list)} images into memory...")
+            from tqdm import tqdm
+            for idx, (img_path, edge_path) in enumerate(tqdm(self.data_list, desc="Loading images")):
+                img, raw_size = self.read_img(img_path)
+                edge = self.read_lb(edge_path)
+                self.image_cache[idx] = (img, edge, raw_size, os.path.basename(img_path))
+            print(f"Cached {len(self.image_cache)} images into memory.")
 
     def __len__(self):
         return len(self.data_list)
@@ -263,17 +276,52 @@ class EdgeDataset(data.Dataset):
 
     def build_list(self):
         data_root = os.path.abspath(self.data_root)
-        images_path = os.path.join(data_root, 'image')
-        labels_path = os.path.join(data_root, 'edge')
+        
+        # Allow custom folder names from cfg, defaulting to 'image' and 'edge'
+        img_folder_name = self.cfg.get('image_folder', 'image') if hasattr(self, 'cfg') else 'image'
+        edge_folder_name = self.cfg.get('edge_folder', 'edge') if hasattr(self, 'cfg') else 'edge'
+        
+        images_path = os.path.join(data_root, img_folder_name)
+        labels_path = os.path.join(data_root, edge_folder_name)
 
         samples = []
-        for directory_name in os.listdir(images_path):
-            image_directories = os.path.join(images_path, directory_name)
-            for file_name_ext in os.listdir(image_directories):
+        
+        # Support both nested (category-based) and flat directory structures
+        # First, check if images_path exists
+        if not os.path.exists(images_path):
+            print(f"Warning: Image path {images_path} does not exist.")
+            return []
+
+        # Check if it contains directories or files
+        items = os.listdir(images_path)
+        if not items:
+            return []
+            
+        first_item = os.path.join(images_path, items[0])
+        is_nested = os.path.isdir(first_item)
+        
+        if is_nested:
+            # Original logic for nested directories
+            for directory_name in os.listdir(images_path):
+                image_directories = os.path.join(images_path, directory_name)
+                if not os.path.isdir(image_directories): continue
+                for file_name_ext in os.listdir(image_directories):
+                    file_name = os.path.basename(file_name_ext)
+                    if not (file_name.lower().endswith(('.jpg', '.png', '.jpeg'))): continue
+                    
+                    image_path = fit_img_postfix(os.path.join(images_path, directory_name, file_name))
+                    lb_path = fit_img_postfix(os.path.join(labels_path, directory_name, file_name))
+                    samples.append((image_path, lb_path))
+        else:
+            # Logic for flat directory
+            for file_name_ext in os.listdir(images_path):
                 file_name = os.path.basename(file_name_ext)
-                image_path = fit_img_postfix(os.path.join(images_path, directory_name, file_name))
-                lb_path = fit_img_postfix(os.path.join(labels_path, directory_name, file_name))
+                if not (file_name.lower().endswith(('.jpg', '.png', '.jpeg'))): continue
+                
+                image_path = fit_img_postfix(os.path.join(images_path, file_name))
+                lb_path = fit_img_postfix(os.path.join(labels_path, file_name))
                 samples.append((image_path, lb_path))
+                
         return samples
 
     def __getitem__(self, index):

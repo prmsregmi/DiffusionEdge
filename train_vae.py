@@ -18,6 +18,7 @@ from multiprocessing import cpu_count
 def parse_args():
     parser = argparse.ArgumentParser(description="training vae configure")
     parser.add_argument("--cfg", help="experiment configure file name", type=str, required=True)
+    parser.add_argument("--data_folder", help="override data folder path", type=str, default=None)
     # parser.add_argument("")
     args = parser.parse_args()
     args.cfg = load_conf(args.cfg)
@@ -43,11 +44,14 @@ def main(args):
         ckpt_path=model_cfg['ckpt_path'],
     )
     data_cfg = cfg["data"]
+    if args.data_folder:
+        data_cfg['img_folder'] = args.data_folder
     if data_cfg['name'] == 'edge':
         dataset = EdgeDataset(
             data_root=data_cfg['img_folder'],
             image_size=model_cfg['ddconfig']['resolution'],
             augment_horizontal_flip=data_cfg['augment_horizontal_flip'],
+            cfg=data_cfg,
         )
     else:
         raise NotImplementedError
@@ -202,6 +206,10 @@ class Trainer(object):
             while self.step < self.train_num_steps:
 
                 total_loss = 0.
+                # Initialize to avoid UnboundLocalError when gradient_accumulate_every=1
+                disc_loss = 0.
+                logits_real = 0.
+                logits_fake = 0.
                 batch = next(self.dl)
                 img = batch['image'].to(device)
                 for ga_ind in range(self.gradient_accumulate_every):
