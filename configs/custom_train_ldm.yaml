@@ -67,8 +67,8 @@ data:
   image_folder: 'imgs'
   edge_folder: 'gt'
   augment_horizontal_flip: True
-  batch_size: 32
-  num_workers: 16
+  batch_size: 128
+  num_workers: 24
 
 trainer:
   gradient_accumulate_every: 1
@@ -80,8 +80,8 @@ trainer:
   log_freq: 1000
   # Trained model checkpoints will be saved here
   results_folder: "./results/custom_ldm_stage2"
-  amp: False
-  fp16: False
+  amp: True
+  fp16: True
   resume_milestone: 0
   test_before: True
   ema_update_after_step: 10000
