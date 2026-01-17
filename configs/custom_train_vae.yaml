@@ -20,11 +20,11 @@ model:
 
 data:
   name: edge
-  img_folder: '/Users/prms/Projects/DiffusionEdge/data/training/Synthetic'
+  img_folder: 'data/training/Synthetic'
   image_folder: 'imgs'
   edge_folder: 'gt'
   augment_horizontal_flip: True
-  batch_size: 64
+  batch_size: 96
   num_workers: 16
 
 trainer:
