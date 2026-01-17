@@ -140,7 +140,7 @@ class Trainer(object):
             self.ema = EMA(model, ema_model=None, beta = ema_decay, update_every = ema_update_every)
 
             self.results_folder = Path(results_folder)
-            self.results_folder.mkdir(exist_ok = True)
+            self.results_folder.mkdir(parents=True, exist_ok = True)
 
         # step counter state
 

@@ -39,8 +39,8 @@ model:
       num_res_blocks: 2
       attn_resolutions: [ ]
       dropout: 0.0
-    # Path to Stage 1 weight (use 'checkpoints/first_stage_total_320.pt' or your trained VAE)
-    ckpt_path: './checkpoints/first_stage_total_320.pt'
+    # Path to Stage 1 weight - using your trained VAE from Stage 1
+    ckpt_path: './results/custom_vae_stage1/model-15.pt'
 
   unet:
     dim: 128
