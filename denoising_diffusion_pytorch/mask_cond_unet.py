@@ -455,10 +455,13 @@ class BlockFFT(nn.Module):
 
     def forward(self, x, scale_shift = None):
         B, C, H, W = x.shape
+        dtype = x.dtype
+        x = x.to(torch.float32)
         x = torch.fft.rfft2(x, dim=(2, 3), norm='ortho')
         x = x * torch.view_as_complex(self.complex_weight)
         x = torch.fft.irfft2(x, s=(H, W), dim=(2, 3), norm='ortho')
         x = x.reshape(B, C, H, W)
+        x = x.to(dtype)
 
         return x
 
