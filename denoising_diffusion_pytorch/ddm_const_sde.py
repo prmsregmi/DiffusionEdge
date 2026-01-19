@@ -836,7 +836,7 @@ class LatentDiffusion(DDPM):
         mask[label == 0] = beta * num_positive / (num_positive + num_negative)
 
         # mask[label == 2] = 0
-        cost = F.binary_cross_entropy(prediction, labelf, weight=mask, reduction='none')
+        cost = F.binary_cross_entropy(prediction.float(), labelf.float(), weight=mask.float(), reduction='none')
         return cost.mean([1, 2, 3])
 
     @torch.no_grad()
