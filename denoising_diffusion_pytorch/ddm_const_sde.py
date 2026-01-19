@@ -822,6 +822,10 @@ class LatentDiffusion(DDPM):
         return loss
 
     def cross_entropy_loss_RCF(self, prediction, labelf, beta=1.1):
+        # Clamp inputs to valid range to check for device-side errors
+        labelf = torch.clamp(labelf, 0.0, 1.0)
+        prediction = torch.clamp(prediction, 0.0, 1.0)
+
         # label = labelf.long()
         label = labelf
         mask = labelf.clone()
