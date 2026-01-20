@@ -74,4 +74,4 @@ sampler:
   use_ema: True
   save_folder: './results/custom_inference'
   # Path to trained LDM checkpoint
-  ckpt_path: "./results/custom_ldm_stage2/model-10.pt"
+  ckpt_path: "./results/custom_ldm_stage2/model-20.pt"

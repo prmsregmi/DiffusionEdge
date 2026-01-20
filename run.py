@@ -8,8 +8,8 @@ import sys
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run DiffusionEdge 3x4 experiments")
-    parser.add_argument("--train", type=str, default="bsds,nyud,biped",
-                        help="Comma-separated list of training models (default: bsds,nyud,biped)")
+    parser.add_argument("--models", type=str, default="bsds,nyud,biped",
+                        help="Comma-separated list of models to evaluate (default: bsds,nyud,biped)")
     parser.add_argument("--test", type=str, default="BIPED,UDED,BSDS,NYUD",
                         help="Comma-separated list of test datasets (default: BIPED,UDED,BSDS,NYUD)")
     parser.add_argument("--dry-run", action="store_true",
@@ -77,7 +77,7 @@ def run_command(cmd, dry_run=False, capture_output=True):
 def main():
     args = parse_args()
     
-    train_models = [m.strip() for m in args.train.split(",")]
+    train_models = [m.strip() for m in args.models.split(",")]
     test_datasets = [d.strip() for d in args.test.split(",")]
     
     results = {}
@@ -85,7 +85,7 @@ def main():
     for train_model in train_models:
         for test_dataset in test_datasets:
             print(f"\n{'='*50}")
-            print(f"Experiment: Train={train_model}, Test={test_dataset}")
+            print(f"Experiment: Model={train_model}, Test={test_dataset}")
             print(f"{'='*50}")
             
             if not check_dataset_exists(test_dataset):

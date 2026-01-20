@@ -64,19 +64,19 @@ model:
 data:
   name: edge
   crop_type: rand_crop
-  img_folder: '/data/yeyunfan/edge_detection_datasets/datasets/BIPED_100%'
+  img_folder: './data/BIPED'
   augment_horizontal_flip: True
-  batch_size: 8
+  batch_size: 64
   num_workers: 8
 
 trainer:
   gradient_accumulate_every: 1
-  lr: !!float 5e-5
-  min_lr: !!float 5e-6
-  train_num_steps: 100000
-  save_and_sample_every: 5000
+  lr: !!float 4e-4
+  min_lr: !!float 4e-5
+  train_num_steps: 12500
+  save_and_sample_every: 625
   enable_resume: False
-  log_freq: 1000
+  log_freq: 125
   results_folder: "./training/BIPED_size320_swin_unet12_no_resize_disloss"
   amp: False
   fp16: False

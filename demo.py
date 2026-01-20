@@ -40,11 +40,15 @@ MODEL_CONFIGS = {
         'config': './configs/BIPED_sample.yaml',
         'weight': 'checkpoints/biped.pt',
     },
+    'synthetic': {
+        'config': './configs/custom_sample.yaml',
+        'weight': 'results/custom_ldm_stage2/model-20.pt',
+    },
 }
 
 def parse_args():
     parser = argparse.ArgumentParser(description="DiffusionEdge Demo")
-    parser.add_argument("--model", help='model to use: bsds, nyud, or biped', type=str, default='bsds', choices=['bsds', 'nyud', 'biped'])
+    parser.add_argument("--model", help='model to use: bsds, nyud, biped, or synthetic', type=str, default='bsds', choices=['bsds', 'nyud', 'biped', 'synthetic'])
     parser.add_argument("--cfg", help="experiment configure file name (overrides --model)", type=str, default=None)
     parser.add_argument("--input_dir", help='input directory', type=str, required=True)
     parser.add_argument("--pre_weight", help='path of pretrained weight (overrides --model)', type=str, default=None)
