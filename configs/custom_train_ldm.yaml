@@ -67,17 +67,17 @@ data:
   image_folder: 'imgs'
   edge_folder: 'gt'
   augment_horizontal_flip: True
-  batch_size: 32
+  batch_size: 64
   num_workers: 16
 
 trainer:
   gradient_accumulate_every: 1
-  lr: !!float 5e-5
-  min_lr: !!float 5e-6
-  train_num_steps: 100000
-  save_and_sample_every: 5000
-  enable_resume: False
-  log_freq: 1000
+  lr: !!float 4e-4
+  min_lr: !!float 4e-5
+  train_num_steps: 12500
+  save_and_sample_every: 625
+  enable_resume: True
+  log_freq: 125
   # Trained model checkpoints will be saved here
   results_folder: "./results/custom_ldm_stage2"
   amp: False
