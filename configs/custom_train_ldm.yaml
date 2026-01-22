@@ -8,7 +8,7 @@ model:
   only_model: False
   timesteps: 1000
   train_sample: -1
-  sampling_timesteps: 1
+  sampling_timesteps: 10
   loss_type: l2
   objective: pred_KC
   start_dist: normal
@@ -40,7 +40,7 @@ model:
       attn_resolutions: [ ]
       dropout: 0.0
     # Path to Stage 1 weight - using your trained VAE from Stage 1
-    ckpt_path: './results/custom_vae_stage1/model-15.pt'
+    ckpt_path: './checkpoints/first_stage_total_320.pt'
 
   unet:
     dim: 128
@@ -62,13 +62,13 @@ model:
 
 data:
   name: edge
-  crop_type: rand_resize_crop
+  crop_type: rand_crop
   img_folder: '/Users/prms/Projects/DiffusionEdge/data/training/Synthetic'
   image_folder: 'imgs'
   edge_folder: 'gt'
   augment_horizontal_flip: True
   batch_size: 64
-  num_workers: 16
+  num_workers: 8
 
 trainer:
   gradient_accumulate_every: 1
@@ -76,7 +76,7 @@ trainer:
   min_lr: !!float 4e-5
   train_num_steps: 12500
   save_and_sample_every: 625
-  enable_resume: True
+  enable_resume: False
   log_freq: 125
   # Trained model checkpoints will be saved here
   results_folder: "./results/custom_ldm_stage2"
