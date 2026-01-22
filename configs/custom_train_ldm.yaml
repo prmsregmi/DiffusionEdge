@@ -63,9 +63,9 @@ model:
 data:
   name: edge
   crop_type: rand_crop
-  img_folder: '/Users/prms/Projects/DiffusionEdge/data/training/Synthetic'
-  image_folder: 'imgs'
-  edge_folder: 'gt'
+  img_folder: '/Users/prms/Projects/DiffusionEdge/data/training/synthetic'
+  image_folder: 'image'
+  edge_folder: 'edge'
   augment_horizontal_flip: True
   batch_size: 64
   num_workers: 8
