@@ -10,7 +10,7 @@ model:
   train_sample: -1
   sampling_timesteps: 5
   loss_type: l2
-  objective: pred_noise
+  objective: pred_KC
   start_dist: normal
   perceptual_weight: 0
   scale_factor: 0.3
@@ -18,7 +18,7 @@ model:
   default_scale: True
   scale_by_softsign: False
   eps: !!float 1e-4
-  weighting_loss: False
+  weighting_loss: True
   first_stage:
     embed_dim: 3
     lossconfig:
@@ -71,7 +71,7 @@ sampler:
   stride: [240, 240]
   batch_size: 1
   sample_num: 300
-  use_ema: True
+  use_ema: False
   save_folder: './results/custom_inference'
   # Path to trained LDM checkpoint
-  ckpt_path: "./results/custom_ldm_stage2/model-20.pt"
+  ckpt_path: "./results/synthetic_trained_4000/model-56.pt"

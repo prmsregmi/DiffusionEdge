@@ -12,6 +12,12 @@ def parse_args():
                         help="Comma-separated list of models to evaluate (default: bsds,nyud,biped)")
     parser.add_argument("--test", type=str, default="BIPED,UDED,BSDS,NYUD",
                         help="Comma-separated list of test datasets (default: BIPED,UDED,BSDS,NYUD)")
+    parser.add_argument("--checkpoints", type=str, nargs='+', default=None,
+                        help="List of checkpoint paths to evaluate")
+    parser.add_argument("--config", type=str, default="configs/custom_sample.yaml",
+                        help="Path to config file when using --checkpoints")
+    parser.add_argument("--model_name", type=str, default="synthetic",
+                        help="Model name label when using --checkpoints")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print commands without executing them")
     return parser.parse_args()
@@ -77,35 +83,78 @@ def run_command(cmd, dry_run=False, capture_output=True):
 def main():
     args = parse_args()
     
-    train_models = [m.strip() for m in args.models.split(",")]
     test_datasets = [d.strip() for d in args.test.split(",")]
+    experiments = []
+
+    if args.checkpoints:
+        # Checkpoint mode
+        for ckpt in args.checkpoints:
+            # Extract filename without extension (e.g. "model-56")
+            ckpt_name = os.path.splitext(os.path.basename(ckpt))[0]
+            experiments.append({
+                "type": "checkpoint",
+                "model": args.model_name,
+                "ckpt_path": ckpt,
+                "ckpt_name": ckpt_name,
+                "config": args.config
+            })
+    else:
+        # Standard mode
+        train_models = [m.strip() for m in args.models.split(",")]
+        for m in train_models:
+            experiments.append({
+                "type": "standard",
+                "model": m
+            })
     
     results = {}
     
-    for train_model in train_models:
+    for exp in experiments:
         for test_dataset in test_datasets:
+            train_model = exp["model"]
+            
             print(f"\n{'='*50}")
-            print(f"Experiment: Model={train_model}, Test={test_dataset}")
+            if exp["type"] == "checkpoint":
+                print(f"Experiment: Model={train_model}, Ckpt={exp['ckpt_name']}, Test={test_dataset}")
+            else:
+                print(f"Experiment: Model={train_model}, Test={test_dataset}")
             print(f"{'='*50}")
             
             if not check_dataset_exists(test_dataset):
                 print(f"Skipping {test_dataset} (missing files)")
                 continue
                 
-            out_dir = os.path.join("results", f"{test_dataset}_{train_model}")
-            input_dir = os.path.join("data", test_dataset, "imgs")
+            # Determine output directory and demo command
+            if exp["type"] == "checkpoint":
+                # Unique output dir for this checkpoint
+                out_dir = os.path.join("results", f"{test_dataset}_{train_model}_{exp['ckpt_name']}")
+                
+                demo_cmd = [
+                    sys.executable, "demo.py",
+                    "--cfg", exp["config"],
+                    "--pre_weight", exp["ckpt_path"],
+                    "--input_dir", os.path.join("data", test_dataset, "imgs"),
+                    "--out_dir", out_dir,
+                    "--skip_small",
+                    "--sampling_timesteps", "5",
+                    # Still pass model name for internal logic if needed, but cfg/weight override it
+                    "--model", train_model 
+                ]
+            else:
+                out_dir = os.path.join("results", f"{test_dataset}_{train_model}")
+                
+                demo_cmd = [
+                    sys.executable, "demo.py",
+                    "--model", train_model,
+                    "--input_dir", os.path.join("data", test_dataset, "imgs"),
+                    "--out_dir", out_dir,
+                    "--skip_small",
+                    "--sampling_timesteps", "5"
+                ]
+
             gt_dir = os.path.join("data", test_dataset, "gt_mat")
             
             # 1. Run Demo (Inference)
-            demo_cmd = [
-                sys.executable, "demo.py",
-                "--model", train_model,
-                "--input_dir", input_dir,
-                "--out_dir", out_dir,
-                "--skip_small",
-                "--sampling_timesteps", "5"
-            ]
-            
             # Don't capture output for demo, so user sees progress
             demo_output = run_command(demo_cmd, args.dry_run, capture_output=False)
             if demo_output is None and not args.dry_run:
@@ -125,13 +174,20 @@ def main():
             if eval_output:
                 ods, ois = parse_eval_output(eval_output)
                 
-                key = f"{train_model}/{test_dataset}"
+                if exp["type"] == "checkpoint":
+                    key = f"{train_model}/{exp['ckpt_name']}/{test_dataset}"
+                else:
+                    key = f"{train_model}/{test_dataset}"
+                    
                 results[key] = {
                     "train_model": train_model,
                     "test_dataset": test_dataset,
                     "ODS": ods,
                     "OIS": ois
                 }
+                if exp["type"] == "checkpoint":
+                     results[key]["checkpoint"] = exp["ckpt_name"]
+
                 print(f"Result: {key} -> ODS={ods}, OIS={ois}")
 
     # Save to JSON
