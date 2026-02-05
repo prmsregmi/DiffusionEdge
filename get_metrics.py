@@ -1,12 +1,22 @@
 import os
 import glob
 import sys
+import argparse
 
 def main():
+    parser = argparse.ArgumentParser(description='Get metrics for a specific model.')
+    parser.add_argument('--model_name', type=str, help='Name of the model to filter results by (suffix of directory name)')
+    args = parser.parse_args()
+
     # Define the pattern to search for metrics.csv files
     # The structure described is: results/{FOLDER_NAME}/result_mat/eval_output/{MODEL_NAME}/metrics.csv
     # We use a glob pattern to match this structure
-    search_path = os.path.join("results", "*", "result_mat", "eval_output", "*", "metrics.csv")
+    if args.model_name:
+        search_pattern = f"*_{args.model_name}"
+    else:
+        search_pattern = "*"
+        
+    search_path = os.path.join("results", search_pattern, "result_mat", "eval_output", "*", "metrics.csv")
     
     files = glob.glob(search_path)
     files.sort()
