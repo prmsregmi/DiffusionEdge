@@ -173,8 +173,7 @@ class Sampler(object):
         self.accelerator = Accelerator(
             split_batches=True,
             mixed_precision='no',
-            kwargs_handlers=[ddp_handler],
-            cpu=True
+            kwargs_handlers=[ddp_handler]
         )
         self.model = model
         self.sample_num = sample_num
