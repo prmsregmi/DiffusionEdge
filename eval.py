@@ -38,7 +38,7 @@ def generate_mat_files(image_dir, output_dir=None):
     return output_dir
 
 
-def call_ods_ois(model, results_path, gt_mat_dir):
+def call_ods_ois(model, results_path, gt_mat_dir, workers=4):
     """
     Run ODS/OIS evaluation using edge_eval_python's separate environment.
     """
@@ -71,13 +71,13 @@ def call_ods_ois(model, results_path, gt_mat_dir):
         "--gt_dir", abs_gt_dir,
         "--key", "result",
         "--file_format", ".mat",
-        "--workers", "1"
+        "--workers", str(workers)
     ]
     
     print(f"\nRunning edge evaluation...")
     print(f"  Result dir: {abs_mat_dir}")
     print(f"  GT dir: {abs_gt_dir}")
-    
+
     subprocess.run(cmd, cwd=edge_eval_dir)
     
     # Read and display results
@@ -104,6 +104,8 @@ def main():
                         help="Directory containing ground truth .mat files")
     parser.add_argument("--model", default="model",
                         help="Model name for output labeling (default: model)")
+    parser.add_argument("--workers", type=int, default=4,
+                        help="Number of parallel workers (default: 4)")
     args = parser.parse_args()
     
     if not os.path.isdir(args.results_dir):
@@ -114,7 +116,7 @@ def main():
         print(f"Error: GT directory not found: {args.gt_dir}")
         sys.exit(1)
     
-    call_ods_ois(args.model, args.results_dir, args.gt_dir)
+    call_ods_ois(args.model, args.results_dir, args.gt_dir, workers=args.workers)
 
 
 if __name__ == "__main__":

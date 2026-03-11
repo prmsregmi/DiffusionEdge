@@ -64,20 +64,23 @@ def run_command(cmd, dry_run=False, capture_output=True):
     
     try:
         if capture_output:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            print(result.stdout)
-            if result.stderr:
-                print(result.stderr, file=sys.stderr)
-            return result.stdout
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            output_lines = []
+            for line in proc.stdout:
+                print(line, end='', flush=True)
+                output_lines.append(line)
+            proc.wait()
+            stderr = proc.stderr.read()
+            if stderr:
+                print(stderr, file=sys.stderr)
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(proc.returncode, cmd)
+            return ''.join(output_lines)
         else:
-            # Stream directly to console
             subprocess.run(cmd, check=True)
             return "SUCCESS"
     except subprocess.CalledProcessError as e:
         print(f"Error running command: {e}")
-        if capture_output:
-            print(e.stdout)
-            print(e.stderr, file=sys.stderr)
         return None
 
 def main():
@@ -155,11 +158,35 @@ def main():
             gt_dir = os.path.join("data", test_dataset, "gt_mat")
             
             # 1. Run Demo (Inference)
-            # Don't capture output for demo, so user sees progress
-            demo_output = run_command(demo_cmd, args.dry_run, capture_output=False)
-            if demo_output is None and not args.dry_run:
-                print("Inference failed, skipping evaluation.")
-                continue
+            input_dir = os.path.join("data", test_dataset, "imgs")
+            expected = len([f for f in os.listdir(input_dir)
+                           if f.lower().endswith(('.png', '.jpg', '.jpeg'))]) if os.path.isdir(input_dir) else 0
+
+            run_inference = True
+            if os.path.isdir(out_dir):
+                existing = [f for f in os.listdir(out_dir) if f.lower().endswith('.png')]
+                if len(existing) > 0:
+                    print(f"\nInference output exists: {len(existing)} images in {out_dir} "
+                          f"(expected: {expected} from {input_dir})")
+                    choice = input("[Y]es to skip inference and evaluate, "
+                                   "[N]o to redo inference, "
+                                   "[C]ancel to abort: ").strip().lower()
+                    if choice in ('y', 'yes'):
+                        run_inference = False
+                    elif choice in ('n', 'no'):
+                        run_inference = True
+                    elif choice in ('c', 'cancel'):
+                        print("Aborted by user.")
+                        sys.exit(0)
+                    else:
+                        print(f"Unknown choice '{choice}', aborting.")
+                        sys.exit(1)
+
+            if run_inference:
+                demo_output = run_command(demo_cmd, args.dry_run, capture_output=False)
+                if demo_output is None and not args.dry_run:
+                    print("Inference failed, skipping evaluation.")
+                    continue
 
             # 2. Run Eval (Evaluation)
             eval_cmd = [
